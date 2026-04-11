@@ -155,12 +155,7 @@ function render() {
 }
 
 function renderPageTitle(title, copy) {
-  return `
-    <section class="page-title">
-      <h2>${title}</h2>
-      <p>${copy}</p>
-    </section>
-  `;
+  return "";
 }
 
 function renderEntry(entry) {
