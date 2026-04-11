@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dual Ledger 双币账本</title>
+    <link rel="icon" href="/static/assets/profile.png" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="identity">
+          <img class="avatar" src="/static/assets/profile.png" alt="用户头像" />
+          <div>
+            <p class="eyebrow">Dual Ledger</p>
+            <h1>双币账本</h1>
+          </div>
+        </div>
+        <button class="ghost-button" id="refreshButton" type="button">同步</button>
+      </header>
+
+      <main id="app" class="content" aria-live="polite"></main>
+
+      <nav class="bottom-nav" aria-label="主导航">
+        <button class="nav-item active" data-route="dashboard" type="button">
+          <span>总览</span>
+        </button>
+        <button class="nav-item" data-route="add" type="button">
+          <span>记一笔</span>
+        </button>
+        <button class="nav-item" data-route="transactions" type="button">
+          <span>流水</span>
+        </button>
+        <button class="nav-item" data-route="reports" type="button">
+          <span>统计</span>
+        </button>
+      </nav>
+    </div>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>
