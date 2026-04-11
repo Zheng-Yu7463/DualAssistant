@@ -91,27 +91,6 @@ def init_db() -> None:
             );
             """
         )
-        seed_if_needed(conn)
-
-
-def seed_if_needed(conn: sqlite3.Connection) -> None:
-    count = conn.execute("select count(*) from entries").fetchone()[0]
-    if count:
-        return
-
-    created = now_iso()
-    samples = [
-        ("seed-cny-income", "income", "CNY", 18000.00, "工资", "4月工资入账", "2026-04-05T09:30:00"),
-        ("seed-cny-rent", "expense", "CNY", 4200.00, "居住", "房租", "2026-04-03T13:20:00"),
-        ("seed-cny-food", "expense", "CNY", 128.60, "餐饮", "晚餐", "2026-04-10T19:14:00"),
-        ("seed-usd-income", "income", "USD", 220.00, "咨询", "海外顾问收入", "2026-04-06T21:30:00"),
-        ("seed-usd-sub", "expense", "USD", 12.99, "订阅", "Apple Store", "2026-04-09T08:12:00"),
-        ("seed-usd-book", "expense", "USD", 84.00, "学习", "专业资料", "2026-04-04T16:02:00"),
-    ]
-    conn.executemany(
-        "insert into entries values (?, ?, ?, ?, ?, ?, ?, ?)",
-        [(entry_id, kind, currency, amount, category, note, occurred, created) for entry_id, kind, currency, amount, category, note, occurred in samples],
-    )
 
 
 def list_entries(conn: sqlite3.Connection, filter_by: str = "all", limit: int | None = None) -> list[dict]:
