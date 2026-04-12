@@ -18,6 +18,7 @@ let state = {
   categoryPickerOpen: false,
   editingRecord: null,
   transactionFilter: "all",
+  reportPeriod: "monthly",
   data: null,
 };
 
@@ -49,6 +50,12 @@ const categoryCatalog = {
     ["其他支出", "其"],
   ],
 };
+
+const reportPeriods = [
+  ["monthly", "本月"],
+  ["yearly", "本年"],
+  ["all_time", "累计"],
+];
 
 const fmt = {
   money(value, currency) {
@@ -362,28 +369,6 @@ function renderDashboard() {
       ${totalCard("CNY", "monthly", "本月人民币支出")}
       ${totalCard("USD", "monthly", "本月美元支出")}
     </section>
-    <section class="grid two">
-      <article class="card metric">
-        <span class="label">累计人民币</span>
-        <strong>${fmt.money(summary.all_time.CNY.expense, "CNY")}</strong>
-        <small>累计收入 ${fmt.money(summary.all_time.CNY.income, "CNY")}</small>
-      </article>
-      <article class="card metric">
-        <span class="label">累计美元</span>
-        <strong>${fmt.money(summary.all_time.USD.expense, "USD")}</strong>
-        <small>累计收入 ${fmt.money(summary.all_time.USD.income, "USD")}</small>
-      </article>
-      <article class="card metric">
-        <span class="label">记录数</span>
-        <strong>${summary.entry_count}</strong>
-        <small>只包含收入和支出</small>
-      </article>
-      <article class="card metric">
-        <span class="label">换汇记录</span>
-        <strong>${summary.exchange_count}</strong>
-        <small>单独展示，不计入收入支出</small>
-      </article>
-    </section>
     <section class="stack">
       <div class="row">
         <h3>最近记录</h3>
@@ -551,14 +536,14 @@ function getExchangeDirectionStats(stats, key) {
   };
 }
 
-function renderExchangeDirectionStats(direction, monthDirection) {
+function renderExchangeDirectionStats(direction) {
   return `
     <article class="entry exchange-stat">
       <div class="row">
         <div>
           <div class="label">${direction.label}</div>
           <strong>${direction.count} 笔</strong>
-          <p class="supporting">本月 ${monthDirection.count} 笔 · 平均汇率 CNY/USD ${direction.count ? fmt.rate(direction.avg_rate) : "暂无"}</p>
+          <p class="supporting">平均汇率 CNY/USD ${direction.count ? fmt.rate(direction.avg_rate) : "暂无"}</p>
         </div>
         <span class="pill">${direction.from_currency} → ${direction.to_currency}</span>
       </div>
@@ -573,52 +558,67 @@ function renderExchangeDirectionStats(direction, monthDirection) {
           <div class="amount income">${fmt.money(direction.to_total, direction.to_currency)}</div>
         </div>
       </div>
-      <p class="supporting">本月 ${fmt.money(monthDirection.from_total, monthDirection.from_currency)} → ${fmt.money(monthDirection.to_total, monthDirection.to_currency)}</p>
+      <p class="supporting">合计 ${fmt.money(direction.from_total, direction.from_currency)} → ${fmt.money(direction.to_total, direction.to_currency)}</p>
     </article>
   `;
 }
 
-function renderExchangeStats() {
-  const allStats = state.data.summary.exchange_stats || { count: 0, directions: {} };
-  const monthStats = state.data.summary.monthly_exchange_stats || { count: 0, directions: {} };
+function exchangeStatsForPeriod(summary, periodKey) {
+  if (periodKey === "monthly") return summary.monthly_exchange_stats || { count: 0, directions: {} };
+  if (periodKey === "yearly") return summary.yearly_exchange_stats || { count: 0, directions: {} };
+  return summary.exchange_stats || { count: 0, directions: {} };
+}
+
+function renderExchangeStats(periodKey, periodLabel) {
+  const stats = exchangeStatsForPeriod(state.data.summary, periodKey);
   const directionKeys = ["CNY_USD", "USD_CNY"];
   return `
     <section class="card stack exchange-stats">
       <div class="row">
         <div>
           <h3>换汇统计</h3>
-          <p class="supporting">单独统计，不计入收入和支出</p>
+          <p class="supporting">${periodLabel}换汇单独统计，不计入收入和支出</p>
         </div>
-        <span class="pill">${allStats.count} 笔</span>
+        <span class="pill">${stats.count} 笔</span>
       </div>
       <div class="stat-strip">
         <div>
-          <span class="label">累计换汇</span>
-          <strong>${allStats.count} 笔</strong>
+          <span class="label">${periodLabel}换汇</span>
+          <strong>${stats.count} 笔</strong>
         </div>
         <div>
-          <span class="label">本月换汇</span>
-          <strong>${monthStats.count} 笔</strong>
+          <span class="label">统计口径</span>
+          <strong>${periodLabel}</strong>
         </div>
       </div>
-      ${allStats.count
-        ? directionKeys.map((key) => renderExchangeDirectionStats(
-          getExchangeDirectionStats(allStats, key),
-          getExchangeDirectionStats(monthStats, key),
-        )).join("")
+      ${stats.count
+        ? directionKeys.map((key) => renderExchangeDirectionStats(getExchangeDirectionStats(stats, key))).join("")
         : `<div class="empty">暂无换汇统计</div>`}
     </section>
   `;
 }
 
+function categoryTotalsForPeriod(summary, periodKey) {
+  return summary.category_totals_by_period?.[periodKey] || summary.category_totals || [];
+}
+
 function renderReports() {
   const summary = state.data.summary;
+  const periodKey = state.reportPeriod;
+  const periodLabel = reportPeriods.find(([key]) => key === periodKey)?.[1] || "本月";
+  const periodSummary = summary[periodKey] || summary.monthly;
+  const categoryTotals = categoryTotalsForPeriod(summary, periodKey);
   const categoryGroups = {
-    CNY: state.data.summary.category_totals.filter((item) => item.currency === "CNY"),
-    USD: state.data.summary.category_totals.filter((item) => item.currency === "USD"),
+    CNY: categoryTotals.filter((item) => item.currency === "CNY"),
+    USD: categoryTotals.filter((item) => item.currency === "USD"),
   };
   app.innerHTML = `
     ${renderPageTitle("收支统计", "只统计收入和支出，不做汇率折算。")}
+    <section class="segmented report-period" aria-label="统计周期">
+      ${reportPeriods.map(([key, label]) => `
+        <button class="${periodKey === key ? "active" : ""}" data-report-period="${key}" type="button">${label}</button>
+      `).join("")}
+    </section>
     <section class="grid two">
       ${["CNY", "USD"].map((currency) => `
         <article class="card stack">
@@ -628,17 +628,17 @@ function renderReports() {
           </div>
           <div class="grid two">
             <div class="card soft metric">
-              <span class="label">累计收入</span>
-              <strong>${fmt.money(summary.all_time[currency].income, currency)}</strong>
-              <small>本月 ${fmt.money(summary.monthly[currency].income, currency)}</small>
+              <span class="label">${periodLabel}收入</span>
+              <strong>${fmt.money(periodSummary[currency].income, currency)}</strong>
+              <small>净额 ${fmt.money(periodSummary[currency].net, currency)}</small>
             </div>
             <div class="card soft metric">
-              <span class="label">累计支出</span>
-              <strong>${fmt.money(summary.all_time[currency].expense, currency)}</strong>
-              <small>本月 ${fmt.money(summary.monthly[currency].expense, currency)}</small>
+              <span class="label">${periodLabel}支出</span>
+              <strong>${fmt.money(periodSummary[currency].expense, currency)}</strong>
+              <small>净额 ${fmt.money(periodSummary[currency].net, currency)}</small>
             </div>
           </div>
-          <h3>类别</h3>
+          <h3>${periodLabel}类别</h3>
           ${categoryGroups[currency].length ? categoryGroups[currency].map((item) => `
             <div class="entry">
               <div class="row">
@@ -653,7 +653,7 @@ function renderReports() {
         </article>
       `).join("")}
     </section>
-    ${renderExchangeStats()}
+    ${renderExchangeStats(periodKey, periodLabel)}
   `;
 }
 
@@ -711,6 +711,10 @@ document.addEventListener("click", (event) => {
   }
   if (target.dataset.filter) {
     state.transactionFilter = target.dataset.filter;
+    render();
+  }
+  if (target.dataset.reportPeriod) {
+    state.reportPeriod = target.dataset.reportPeriod;
     render();
   }
 });

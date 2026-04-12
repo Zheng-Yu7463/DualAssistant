@@ -141,16 +141,17 @@ def totals_for(rows: list[sqlite3.Row] | list[dict]) -> dict:
     return totals
 
 
-def category_totals(conn: sqlite3.Connection) -> list[dict]:
-    rows = conn.execute(
-        """
-        select currency, type, category, round(sum(amount), 2) as total
-        from entries
-        group by currency, type, category
-        order by currency, type, total desc
-        """
-    ).fetchall()
-    return rows_to_dicts(rows)
+def category_totals_for(rows: list[sqlite3.Row] | list[dict]) -> list[dict]:
+    totals: dict[tuple[str, str, str], float] = {}
+    for row in rows:
+        key = (row["currency"], row["type"], row["category"])
+        totals[key] = totals.get(key, 0.0) + float(row["amount"])
+
+    items = [
+        {"currency": currency, "type": kind, "category": category, "total": round(total, 2)}
+        for (currency, kind, category), total in totals.items()
+    ]
+    return sorted(items, key=lambda item: (item["currency"], item["type"], -item["total"], item["category"]))
 
 
 def exchange_stats(rows: list[dict]) -> dict:
@@ -199,18 +200,30 @@ def exchange_stats(rows: list[dict]) -> dict:
 def build_summary(conn: sqlite3.Connection) -> dict:
     all_rows = rows_to_dicts(conn.execute("select * from entries order by occurred_at desc, created_at desc").fetchall())
     exchange_rows = list_exchanges(conn)
-    month_prefix = datetime.now().strftime("%Y-%m")
+    current_time = datetime.now()
+    month_prefix = current_time.strftime("%Y-%m")
+    year_prefix = current_time.strftime("%Y")
     month_rows = [row for row in all_rows if row["occurred_at"].startswith(month_prefix)]
+    year_rows = [row for row in all_rows if row["occurred_at"].startswith(year_prefix)]
     month_exchange_rows = [row for row in exchange_rows if row["occurred_at"].startswith(month_prefix)]
+    year_exchange_rows = [row for row in exchange_rows if row["occurred_at"].startswith(year_prefix)]
+    category_totals_by_period = {
+        "all_time": category_totals_for(all_rows),
+        "yearly": category_totals_for(year_rows),
+        "monthly": category_totals_for(month_rows),
+    }
     return {
         "all_time": totals_for(all_rows),
+        "yearly": totals_for(year_rows),
         "monthly": totals_for(month_rows),
         "entry_count": len(all_rows),
         "exchange_count": len(exchange_rows),
         "exchange_stats": exchange_stats(exchange_rows),
+        "yearly_exchange_stats": exchange_stats(year_exchange_rows),
         "monthly_exchange_stats": exchange_stats(month_exchange_rows),
         "recent_entries": combined_records(all_rows, exchange_rows, 6),
-        "category_totals": category_totals(conn),
+        "category_totals": category_totals_by_period["all_time"],
+        "category_totals_by_period": category_totals_by_period,
     }
 
 

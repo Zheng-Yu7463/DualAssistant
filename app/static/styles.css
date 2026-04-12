@@ -286,6 +286,10 @@ h1 {
   min-width: 92px;
 }
 
+.report-period {
+  margin-bottom: 14px;
+}
+
 .row {
   display: flex;
   align-items: center;
