@@ -181,6 +181,16 @@ h1 {
   line-height: 1.05;
 }
 
+.balance-fields {
+  display: flex;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+}
+
+.balance-fields .supporting {
+  margin-bottom: 0;
+}
+
 .currency-chip,
 .pill {
   display: inline-flex;

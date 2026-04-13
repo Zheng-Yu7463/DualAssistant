@@ -201,8 +201,10 @@ def build_summary(conn: sqlite3.Connection) -> dict:
     all_rows = rows_to_dicts(conn.execute("select * from entries order by occurred_at desc, created_at desc").fetchall())
     exchange_rows = list_exchanges(conn)
     current_time = datetime.now()
+    day_prefix = current_time.strftime("%Y-%m-%d")
     month_prefix = current_time.strftime("%Y-%m")
     year_prefix = current_time.strftime("%Y")
+    day_rows = [row for row in all_rows if row["occurred_at"].startswith(day_prefix)]
     month_rows = [row for row in all_rows if row["occurred_at"].startswith(month_prefix)]
     year_rows = [row for row in all_rows if row["occurred_at"].startswith(year_prefix)]
     month_exchange_rows = [row for row in exchange_rows if row["occurred_at"].startswith(month_prefix)]
@@ -211,11 +213,13 @@ def build_summary(conn: sqlite3.Connection) -> dict:
         "all_time": category_totals_for(all_rows),
         "yearly": category_totals_for(year_rows),
         "monthly": category_totals_for(month_rows),
+        "daily": category_totals_for(day_rows),
     }
     return {
         "all_time": totals_for(all_rows),
         "yearly": totals_for(year_rows),
         "monthly": totals_for(month_rows),
+        "daily": totals_for(day_rows),
         "entry_count": len(all_rows),
         "exchange_count": len(exchange_rows),
         "exchange_stats": exchange_stats(exchange_rows),

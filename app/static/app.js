@@ -345,15 +345,20 @@ function renderEditExchangeModal(record) {
   `;
 }
 
-function totalCard(currency, period, title) {
-  const data = state.data.summary[period][currency];
+function totalCard(currency, title) {
+  const emptyTotals = { income: 0, expense: 0, net: 0 };
+  const monthlyData = state.data.summary.monthly?.[currency] || emptyTotals;
+  const dailyData = state.data.summary.daily?.[currency] || emptyTotals;
   return `
     <article class="card ${currency === "CNY" ? "hero-card" : ""}">
       <div class="balance-line">
         <div>
           <p class="label">${title}</p>
-          <div class="balance">${fmt.money(data.expense, currency)}</div>
-          <p class="supporting">收入 ${fmt.money(data.income, currency)}</p>
+          <div class="balance">${fmt.money(monthlyData.expense, currency)}</div>
+          <div class="balance-fields">
+            <p class="supporting">今日支出 ${fmt.money(dailyData.expense, currency)}</p>
+            <p class="supporting">本月收入 ${fmt.money(monthlyData.income, currency)}</p>
+          </div>
         </div>
         <span class="currency-chip ${currency === "USD" ? "green" : ""}">${currency}</span>
       </div>
@@ -366,8 +371,8 @@ function renderDashboard() {
   app.innerHTML = `
     ${renderPageTitle("收入支出总览", "这里只记录人民币和美元的收入 / 支出，不区分账户，也不计算余额。")}
     <section class="dashboard-grid">
-      ${totalCard("CNY", "monthly", "本月人民币支出")}
-      ${totalCard("USD", "monthly", "本月美元支出")}
+      ${totalCard("CNY", "本月人民币支出")}
+      ${totalCard("USD", "本月美元支出")}
     </section>
     <section class="stack">
       <div class="row">
