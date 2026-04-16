@@ -1,0 +1,9 @@
+services:
+  dualassistant:
+    build: .
+    container_name: dualassistant
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

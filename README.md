@@ -158,6 +158,40 @@ http://127.0.0.1:8000
 
 ## 🚢 Deployment
 
+### Docker 部署
+
+项目已经包含 `Dockerfile` 和 `docker-compose.yml`，可以直接构建并后台运行：
+
+```bash
+docker compose up -d --build
+```
+
+默认映射端口：
+
+```text
+http://你的服务器IP:8002
+```
+
+查看日志：
+
+```bash
+docker compose logs -f dualassistant
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+SQLite 数据会保存在宿主机的 `data/` 目录里：
+
+```text
+data/dual_ledger.sqlite3
+```
+
+只要保留这个目录，重建镜像或重启容器都不会丢账本数据。
+
 ### 开发式部署
 
 如果只是临时在服务器上跑：
